@@ -114,6 +114,17 @@
   .gap span{font-size:12.5px;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
 
   .note{background:var(--accent-soft);border-radius:10px;padding:15px 18px;font-size:15.5px;color:var(--ink2);margin:0 0 26px}
+  .qhide{display:none}
+  .qshow{display:block;animation:qfade .3s ease}
+  @keyframes qfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .readnote{
+    display:flex;align-items:center;gap:12px;background:var(--accent-soft);border-radius:10px;
+    padding:15px 18px;font-size:15.5px;color:var(--ink2);margin:0 0 26px;
+  }
+  .rdot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex:0 0 auto;
+        animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+  .qstep{font-size:13px;color:var(--muted);margin:0 0 26px;letter-spacing:.02em}
   .blk{display:none}
   .blk.on{display:block}
   .center{text-align:center}
@@ -258,17 +269,17 @@ const VIGNETTES = {
     q:"What&rsquo;s a good laptop for a college student, under $600?",
     a1:"I&rsquo;d go with the <strong>Acer Aspire 5</strong>. It&rsquo;s the best value in that price range &mdash; solid build, good battery, and it handles coursework easily.",
     a2:"The <strong>Lenovo IdeaPad Slim 3</strong> is your best bet under $600. Lighter than most, battery lasts the day, and plenty of power for classwork.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation", two:true },
+    t1:"Asked again 5 minutes later", t2:"End of conversation" },
   B: { key:"B", type:"formal",
     q:"What&rsquo;s a good beginner camera, under $500?",
     a1:"I&rsquo;d recommend the <strong>Canon EOS R100</strong>. It&rsquo;s the easiest entry-level model to learn on, and the kit lens covers most everyday shooting.",
     a2:"The <strong>Canon EOS R100</strong> is the one I&rsquo;d suggest. It&rsquo;s very beginner-friendly, and the lens it comes with handles most situations you&rsquo;ll run into.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation", two:true },
+    t1:"Asked again 5 minutes later", t2:"End of conversation" },
   C: { key:"C", type:"none",
     q:"What&rsquo;s a good pair of running shoes for a beginner, under $100?",
     a1:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
     a2:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation", two:false }
+    t1:"Asked again 5 minutes later", t2:"End of conversation" }
 };
 
 const AGREE = ["Strongly<br>disagree","Disagree","Somewhat<br>disagree","Neither","Somewhat<br>agree","Agree","Strongly<br>agree"];
@@ -405,33 +416,94 @@ function scrVigIntro(){
     <div class="kicker">Part ${D.block_order==="vignettes_first"?"1":"2"} of 4</div>
     <h1>Three short exchanges</h1>
     <div class="note">On the next three screens you will see short exchanges with an AI assistant. In each one, someone asked a question, waited a few minutes, then asked <strong>the exact same question again</strong>.</div>
-    <p class="lead">For each exchange, imagine it happened to you, and answer the questions underneath.</p>`,
+    <p class="lead">Please read each exchange carefully. The questions will appear one at a time once you have had a moment to read, and the exchange stays on screen while you answer.</p>`,
   ()=>true, {label:"Start"});
 }
 
 function scrVignette(k, pos){
   const V = VIGNETTES[k];
-  let items = `<div class="q">${q("1.","I would have no way of telling which of these two answers to go with.")}${likert("V1")}</div>`;
-  if(V.two) items += `<div class="q">${q("2.","One of these two answers is clearly the better one to act on.")}${likert("V2")}</div>`;
-  items += `<div class="q">${q(V.two?"3.":"2.","The information the AI gave here is accurate.")}${likert("V3")}</div>`;
-  if(V.two) items += `<div class="q">${q("4.","If this happened to you, what would you most likely do next?")}
-    ${radios("V4",[
-      {v:"go",t:"Go with one of the answers"},{v:"again",t:"Ask the AI again"},
-      {v:"nonai",t:"Check a source that isn&rsquo;t AI"},{v:"person",t:"Ask another person"},
-      {v:"drop",t:"Drop the question"}])}</div>`;
 
-  show(`
-    <div class="kicker">Exchange ${pos} of 3</div>
-    ${chat(V.q, V.a1, V.a2, V.t1, V.t2)}
-    ${items}`,
-  ()=>{
-    const req = V.two ? ["V1","V2","V3","V4"] : ["V1","V3"];
-    if(!need(req)) return false;
-    D["v"+k+"_type"]=V.type; D["v"+k+"_pos"]=pos;
-    D["v"+k+"_V1"]=+val("V1"); D["v"+k+"_V3"]=+val("V3");
-    if(V.two){ D["v"+k+"_V2"]=+val("V2"); D["v"+k+"_V4"]=val("V4"); }
-    return true;
+  // Identical five questions on every exchange, in the same order, always.
+  // The manipulation check comes last, after the dependent measures.
+  const QS = [
+    { id:"V1", kind:"lik", t:"I would have no way of telling which answer to act on." },
+    { id:"V2", kind:"lik", t:"One of these answers is more likely to be correct than the other." },
+    { id:"V3", kind:"lik", t:"The information the AI gave here is accurate." },
+    { id:"V4", kind:"rad", t:"If this happened to you, what would you most likely do next?",
+      opts:[{v:"go",t:"Go with one of the answers"},{v:"again",t:"Ask the AI again"},
+            {v:"nonai",t:"Check a source that isn&rsquo;t AI"},{v:"person",t:"Ask another person"},
+            {v:"drop",t:"Drop the question"}] },
+    { id:"MC", kind:"lik", t:"Both times, the AI gave the same recommendation." }
+  ];
+
+  const body = QS.map((qq,i)=>
+    `<div class="q qhide" id="q_${i}">${q((i+1)+" of "+QS.length+".", qq.t)}` +
+    (qq.kind==="lik" ? likert(qq.id) : radios(qq.id, qq.opts)) + `</div>`).join("");
+
+  T.screenStart = Date.now();
+  app.innerHTML =
+    `<div class="kicker">Exchange ${pos} of 3</div>` +
+    chat(V.q, V.a1, V.a2, V.t1, V.t2) +
+    `<div class="readnote" id="readnote"><span class="rdot"></span><span>Take a moment to read the exchange above. The first question will appear shortly.</span></div>` +
+    `<div id="qzone">${body}</div>` +
+    `<div class="btn-row qhide" id="btnrow"><button class="btn" id="next">Continue</button></div>`;
+  document.getElementById("bar").style.width = Math.round((idx/SCREENS.length)*100)+"%";
+  window.scrollTo(0,0);
+  wire();
+
+  const revealedAt = {};
+  const answeredAt = {};
+  let shown = -1;
+
+  function answered(i){
+    const el = document.querySelector(`input[name="${QS[i].id}"]:checked`);
+    return !!el;
+  }
+  function reveal(i){
+    if(i>=QS.length){
+      const br = document.getElementById("btnrow");
+      br.classList.remove("qhide"); br.classList.add("qshow");
+      br.scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+    shown = i;
+    const el = document.getElementById("q_"+i);
+    el.classList.remove("qhide"); el.classList.add("qshow");
+    revealedAt[QS[i].id] = Date.now();
+    if(i>0) el.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+
+  // one listener, delegated: reveal the next question as soon as this one is answered
+  document.getElementById("qzone").addEventListener("change", (ev)=>{
+    const nm = ev.target && ev.target.name;
+    if(!nm) return;
+    const i = QS.findIndex(x=>x.id===nm);
+    if(i<0) return;
+    if(!answeredAt[nm]) answeredAt[nm] = Date.now();
+    if(i===shown && answered(i)) setTimeout(()=>reveal(i+1), 260);
   });
+
+  // forced reading window before the first question appears
+  const READ_MS = 5000;
+  setTimeout(()=>{
+    const rn = document.getElementById("readnote");
+    if(rn) rn.remove();
+    reveal(0);
+  }, READ_MS);
+
+  document.getElementById("next").onclick = ()=>{
+    if(!need(QS.map(x=>x.id))) return;      // cannot happen via the UI, but belt and braces
+    D["v"+k+"_type"] = V.type;
+    D["v"+k+"_pos"]  = pos;
+    QS.forEach(qq=>{
+      const v = val(qq.id);
+      D["v"+k+"_"+qq.id] = (qq.kind==="lik") ? +v : v;
+      if(revealedAt[qq.id] && answeredAt[qq.id])
+        D["v"+k+"_"+qq.id+"_ms"] = answeredAt[qq.id]-revealedAt[qq.id];
+    });
+    D["t_vig_"+k+"_ms"] = Date.now()-T.screenStart;
+    idx++; runScreen();
+  };
 }
 
 /* ---------- beliefs block ---------- */
