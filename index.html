@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Research Study</title>
+<style>
+  :root{
+    --bg:#FBFAF8; --surface:#FFFFFF; --ink:#18181B; --ink2:#3F3F46;
+    --muted:#71717A; --line:#E4E4E7; --line2:#D4D4D8;
+    --accent:#115E67; --accent-dk:#0C464D; --accent-soft:#E8F1F2;
+    --user-bub:#F4F4F5; --warn:#9A3412;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    font-size:17px; line-height:1.62; -webkit-font-smoothing:antialiased;
+  }
+  #bar{position:fixed;top:0;left:0;height:3px;width:0%;background:var(--accent);transition:width .35s ease;z-index:50}
+  .wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+  h1{font-size:29px;line-height:1.25;font-weight:650;letter-spacing:-.015em;margin:0 0 20px}
+  h2{font-size:21px;line-height:1.3;font-weight:640;letter-spacing:-.01em;margin:34px 0 12px}
+  p{margin:0 0 16px;color:var(--ink2)}
+  .lead{font-size:18px;color:var(--ink2)}
+  .muted{color:var(--muted);font-size:15px}
+  .kicker{font-size:12.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);font-weight:660;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:0 0 22px}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    appearance:none;border:0;background:var(--accent);color:#fff;font:inherit;font-weight:600;
+    padding:13px 30px;border-radius:9px;cursor:pointer;transition:background .15s ease, transform .05s ease;
+  }
+  .btn:hover{background:var(--accent-dk)}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{background:var(--line2);color:#fff;cursor:not-allowed}
+  .btn-row{margin-top:34px;display:flex;align-items:center;gap:18px}
+  .err{color:var(--warn);font-size:15px;margin-top:14px;display:none}
+  .err.show{display:block}
+
+  /* ---------- question ---------- */
+  .q{margin:0 0 30px;padding:0 0 4px}
+  .q:last-of-type{margin-bottom:8px}
+  .qtext{font-size:17.5px;line-height:1.5;margin:0 0 14px;color:var(--ink)}
+  .qnum{color:var(--accent);font-weight:650;margin-right:8px;font-variant-numeric:tabular-nums}
+
+  /* ---------- likert ---------- */
+  .lik{display:flex;gap:6px;margin:4px 0 6px}
+  .lik label{
+    flex:1;position:relative;height:46px;border:1.5px solid var(--line2);border-radius:8px;
+    cursor:pointer;background:var(--surface);transition:border-color .12s ease;user-select:none;
+  }
+  .lik label:hover{border-color:var(--accent)}
+  .lik input{position:absolute;opacity:0;width:0;height:0}
+  .lik .n{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    border-radius:6.5px;font-size:15px;font-weight:560;color:var(--ink2);
+    transition:background .12s ease,color .12s ease;
+  }
+  .lik label:hover .n{background:var(--accent-soft)}
+  .lik input:checked + .n{background:var(--accent);color:#fff;font-weight:640}
+  .anchors{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:2px}
+
+  /* ---------- choice / checkbox ---------- */
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{
+    display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border:1.5px solid var(--line2);
+    border-radius:9px;cursor:pointer;background:var(--surface);transition:all .12s ease;font-size:16px;
+  }
+  .opt:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .opt.sel{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+  .opt input{margin:5px 0 0 0;accent-color:var(--accent);width:16px;height:16px;flex:0 0 auto}
+
+  textarea,input[type=number]{
+    width:100%;font:inherit;padding:13px 15px;border:1.5px solid var(--line2);border-radius:9px;
+    background:var(--surface);color:var(--ink);resize:vertical;
+  }
+  textarea:focus,input:focus{outline:none;border-color:var(--accent)}
+  input[type=number]{max-width:160px}
+
+  /* ---------- CHAT MOCKUP ---------- */
+  .chat{
+    border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;
+    box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px -12px rgba(0,0,0,.12);margin:6px 0 26px;
+  }
+  .chat-top{
+    display:flex;align-items:center;gap:9px;padding:11px 16px;border-bottom:1px solid var(--line);
+    background:#FCFCFC;
+  }
+  .chat-dot{width:8px;height:8px;border-radius:50%;background:#22C55E;flex:0 0 auto}
+  .chat-name{font-size:13.5px;font-weight:620;color:var(--ink2);letter-spacing:.01em}
+  .chat-body{padding:20px 20px 22px}
+  .turn{margin:0 0 18px}
+  .turn:last-child{margin-bottom:0}
+  .u-row{display:flex;justify-content:flex-end}
+  .u-bub{
+    background:var(--user-bub);border-radius:16px 16px 5px 16px;padding:11px 16px;
+    max-width:80%;font-size:15.5px;line-height:1.5;color:var(--ink);
+  }
+  .a-row{display:flex;gap:12px;align-items:flex-start;margin-top:16px}
+  .a-av{
+    width:27px;height:27px;border-radius:7px;flex:0 0 auto;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;margin-top:2px;
+  }
+  .a-av svg{width:15px;height:15px;fill:#fff}
+  .a-txt{font-size:15.5px;line-height:1.62;color:var(--ink);padding-top:1px}
+  .gap{
+    display:flex;align-items:center;gap:12px;margin:22px 0 4px;
+  }
+  .gap::before,.gap::after{content:"";flex:1;height:1px;background:var(--line)}
+  .gap span{font-size:12.5px;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+
+  .note{background:var(--accent-soft);border-radius:10px;padding:15px 18px;font-size:15.5px;color:var(--ink2);margin:0 0 26px}
+  .blk{display:none}
+  .blk.on{display:block}
+  .center{text-align:center}
+  code.cc{
+    display:inline-block;background:var(--ink);color:#fff;padding:9px 20px;border-radius:8px;
+    font-size:19px;letter-spacing:.09em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (max-width:820px){ .wrap{padding:40px 20px 90px} }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="wrap" id="app"></div>
+
+<script>
+/* =====================================================================
+   ANSWER ARBITRARINESS — PILOT SURVEY
+   Single-group survey. One counterbalanced factor: block order.
+   ===================================================================== */
+const CONFIG = {
+  study:   "answer_arbitrariness_pilot",
+  version: "v1.0",
+  supabaseUrl: "https://dzqjhdhyrzdudlqvqmjq.supabase.co",
+  supabaseKey: "sb_publishable_bVhnW3Zku3IIS_yj-YjUZw_FX2xYBBu",
+  table:  "aa_responses",
+  events: "aa_events",
+  rpc:    "aa_assign_condition",
+  completionCode: "C1KZ9QW4",
+  cells: ["vignettes_first","beliefs_first"]
+};
+
+/* ---------- state ---------- */
+const D = {};                      // everything we record
+const T = { start: Date.now(), screenStart: Date.now() };
+let SUBMISSION_ID = null, SCREENS = [], idx = 0, blurCount = 0;
+
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+      const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16);}));
+
+/* seeded PRNG so a participant's shuffles are reconstructable from their row */
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return ()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^=h>>>16)>>>0;}}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;}}
+let RNG = Math.random;
+function shuffle(arr){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(RNG()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ---------- URL params ---------- */
+const P = new URLSearchParams(location.search);
+const PID = P.get("PROLIFIC_PID") || P.get("participantId") || P.get("workerId") || null;
+D.PROLIFIC_PID = PID; D.pid_source = PID ? "url" : "generated";
+D.STUDY_ID = P.get("STUDY_ID") || null; D.SESSION_ID = P.get("SESSION_ID") || null;
+
+/* ---------- transport ---------- */
+async function post(path, body){
+  return fetch(CONFIG.supabaseUrl + "/rest/v1/" + path, {
+    method:"POST",
+    headers:{ "Content-Type":"application/json", "apikey":CONFIG.supabaseKey,
+              "Authorization":"Bearer "+CONFIG.supabaseKey, "Prefer":"return=minimal" },
+    body: JSON.stringify(body)
+  });
+}
+function logEvent(ev, detail){
+  try{ post(CONFIG.events, { study:CONFIG.study, version:CONFIG.version,
+    submission_id:SUBMISSION_ID, pid:PID, event:ev, detail:detail?String(detail).slice(0,400):null }); }catch(e){}
+}
+async function assignCell(){
+  try{
+    const r = await fetch(CONFIG.supabaseUrl + "/rest/v1/rpc/" + CONFIG.rpc, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "apikey":CONFIG.supabaseKey,
+                "Authorization":"Bearer "+CONFIG.supabaseKey },
+      body: JSON.stringify({ p_study:CONFIG.study, p_submission_id:SUBMISSION_ID,
+                             p_pid:PID, p_cells:CONFIG.cells })
+    });
+    if(!r.ok) throw new Error("rpc "+r.status);
+    const cell = await r.json();
+    if(typeof cell !== "string" || !CONFIG.cells.includes(cell)) throw new Error("bad cell");
+    D.assignment_source = "server"; return cell;
+  }catch(e){
+    D.assignment_source = "client_fallback";
+    return CONFIG.cells[Math.floor(Math.random()*CONFIG.cells.length)];
+  }
+}
+async function submit(status){
+  D.status = status;
+  D.duration_s = Math.round((Date.now()-T.start)/1000);
+  D.blur_count = blurCount;
+  D.user_agent = navigator.userAgent;
+  D.screen_wh  = screen.width+"x"+screen.height;
+  D.viewport_wh= window.innerWidth+"x"+window.innerHeight;
+  D.touch      = ('ontouchstart' in window)?1:0;
+  D.study = CONFIG.study; D.version = CONFIG.version;
+  for(let a=0;a<3;a++){
+    try{
+      const r = await post(CONFIG.table, { submission_id:SUBMISSION_ID, pid:PID,
+        status:status, duration_s:D.duration_s, data:D });
+      if(r.ok) return true;
+    }catch(e){}
+    await new Promise(res=>setTimeout(res, 700*(a+1)));
+  }
+  logEvent("submit_failed", status);
+  return false;
+}
+window.addEventListener("blur", ()=>{ blurCount++; });
+window.addEventListener("pagehide", ()=>{
+  if(D.status) return;
+  try{
+    const fd = new URLSearchParams({ study:CONFIG.study, version:CONFIG.version,
+      submission_id:SUBMISSION_ID||"", pid:PID||"", event:"abandon",
+      detail:"screen="+(SCREENS[idx]?SCREENS[idx].id:"?") });
+    navigator.sendBeacon(CONFIG.supabaseUrl+"/rest/v1/"+CONFIG.events+"?apikey="+CONFIG.supabaseKey,
+      new Blob([fd.toString()],{type:"application/x-www-form-urlencoded"}));
+  }catch(e){}
+});
+
+/* =====================================================================
+   STIMULI
+   ===================================================================== */
+const AVATAR = '<svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06a7.01 7.01 0 0 1 5.94 5.94H20a1 1 0 1 1 0 2h-1.06a7.01 7.01 0 0 1-5.94 5.94V19a1 1 0 1 1-2 0v-1.06A7.01 7.01 0 0 1 5.06 12H4a1 1 0 1 1 0-2h1.06A7.01 7.01 0 0 1 11 4.06V3a1 1 0 0 1 1-1Zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>';
+
+function chat(question, a1, a2, t1, t2){
+  return `
+  <div class="chat">
+    <div class="chat-top"><span class="chat-dot"></span><span class="chat-name">AI Assistant</span></div>
+    <div class="chat-body">
+      <div class="turn">
+        <div class="u-row"><div class="u-bub">${question}</div></div>
+        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${a1}</div></div>
+      </div>
+      <div class="gap"><span>${t1}</span></div>
+      <div class="turn">
+        <div class="u-row"><div class="u-bub">${question}</div></div>
+        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${a2}</div></div>
+      </div>
+      <div class="gap" style="margin-top:18px"><span>${t2}</span></div>
+    </div>
+  </div>`;
+}
+
+const VIGNETTES = {
+  A: { key:"A", type:"substantive",
+    q:"What&rsquo;s a good laptop for a college student, under $600?",
+    a1:"I&rsquo;d go with the <strong>Acer Aspire 5</strong>. It&rsquo;s the best value in that price range &mdash; solid build, good battery, and it handles coursework easily.",
+    a2:"The <strong>Lenovo IdeaPad Slim 3</strong> is your best bet under $600. Lighter than most, battery lasts the day, and plenty of power for classwork.",
+    t1:"Asked again 5 minutes later", t2:"End of conversation", two:true },
+  B: { key:"B", type:"formal",
+    q:"What&rsquo;s a good beginner camera, under $500?",
+    a1:"I&rsquo;d recommend the <strong>Canon EOS R100</strong>. It&rsquo;s the easiest entry-level model to learn on, and the kit lens covers most everyday shooting.",
+    a2:"The <strong>Canon EOS R100</strong> is the one I&rsquo;d suggest. It&rsquo;s very beginner-friendly, and the lens it comes with handles most situations you&rsquo;ll run into.",
+    t1:"Asked again 5 minutes later", t2:"End of conversation", two:true },
+  C: { key:"C", type:"none",
+    q:"What&rsquo;s a good pair of running shoes for a beginner, under $100?",
+    a1:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
+    a2:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
+    t1:"Asked again 5 minutes later", t2:"End of conversation", two:false }
+};
+
+const AGREE = ["Strongly<br>disagree","Disagree","Somewhat<br>disagree","Neither","Somewhat<br>agree","Agree","Strongly<br>agree"];
+
+/* =====================================================================
+   RENDER HELPERS
+   ===================================================================== */
+const app = document.getElementById("app");
+function likert(name){
+  let h = '<div class="lik">';
+  for(let i=1;i<=7;i++) h += `<label><input type="radio" name="${name}" value="${i}"><span class="n">${i}</span></label>`;
+  h += '</div><div class="anchors"><span>1 &nbsp;Strongly disagree</span><span>Strongly agree&nbsp; 7</span></div>';
+  return h;
+}
+function radios(name, opts){
+  return '<div class="opts">' + opts.map((o,i)=>
+    `<label class="opt" data-g="${name}"><input type="radio" name="${name}" value="${o.v}">${o.t}</label>`).join('') + '</div>';
+}
+function checks(name, opts){
+  return '<div class="opts">' + opts.map((o,i)=>
+    `<label class="opt" data-g="${name}"><input type="checkbox" name="${name}" value="${o.v}">${o.t}</label>`).join('') + '</div>';
+}
+function wire(){
+  app.querySelectorAll('.opt input').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const g = inp.closest('.opt').dataset.g;
+      if(inp.type==='radio') app.querySelectorAll(`.opt[data-g="${g}"]`).forEach(l=>l.classList.remove('sel'));
+      inp.closest('.opt').classList.toggle('sel', inp.checked);
+    });
+  });
+}
+function q(n, text){ return `<div class="qtext"><span class="qnum">${n}</span>${text}</div>`; }
+
+function show(html, onNext, opts){
+  opts = opts || {};
+  T.screenStart = Date.now();
+  app.innerHTML = html + (opts.noBtn ? '' :
+    `<div class="btn-row"><button class="btn" id="next">${opts.label||"Continue"}</button></div>
+     <div class="err" id="err">${opts.err||"Please answer every question before continuing."}</div>`);
+  document.getElementById("bar").style.width = Math.round((idx/SCREENS.length)*100)+"%";
+  window.scrollTo(0,0);
+  wire();
+  const b = document.getElementById("next");
+  if(b) b.onclick = ()=>{
+    const ok = onNext ? onNext() : true;
+    if(ok===false){ const e=document.getElementById("err"); if(e) e.classList.add("show"); return; }
+    const sid = SCREENS[idx] ? SCREENS[idx].id : ("s"+idx);
+    D["t_"+sid+"_ms"] = Date.now()-T.screenStart;
+    idx++; runScreen();
+  };
+}
+const val  = n => { const e = app.querySelector(`input[name="${n}"]:checked`); return e ? e.value : null; };
+const vals = n => Array.from(app.querySelectorAll(`input[name="${n}"]:checked`)).map(e=>e.value);
+function need(names){ for(const n of names){ if(!val(n)) return false; } return true; }
+
+/* =====================================================================
+   SCREENS
+   ===================================================================== */
+function scrDevice(){
+  const small = window.innerWidth < 860;
+  const touch = ('ontouchstart' in window) && window.innerWidth < 1100;
+  if(!(small||touch)) { idx++; return runScreen(); }
+  app.innerHTML = `<div class="card"><div class="kicker">Desktop required</div>
+    <h1>Please open this study on a computer</h1>
+    <p class="lead">This study needs a larger screen to display the material correctly. Please return the submission and reopen the link on a laptop or desktop.</p>
+    <p class="muted">If you are on a desktop and see this message, try widening your browser window and refreshing.</p></div>`;
+  logEvent("screenout_device");
+}
+
+function scrConsent(){
+  show(`
+    <div class="kicker">Research study</div>
+    <h1>Consent to take part</h1>
+    <div class="card">
+      <p>You are invited to take part in a short research study about how people react to answers given by AI chatbots.</p>
+      <h2>What is involved</h2>
+      <p>You will read a few short exchanges between a person and an AI assistant, and answer questions about them and about your own use of AI tools. The study takes about <strong>5 minutes</strong>.</p>
+      <h2>Risks and benefits</h2>
+      <p>There are no anticipated risks beyond those of everyday computer use. There is no direct benefit to you. Your responses help researchers understand how people use AI-generated information.</p>
+      <h2>Confidentiality</h2>
+      <p>Your responses are anonymous. We do not collect your name, email address, or IP address. If you came from a recruitment platform, your platform ID is stored so you can be paid, and it is kept separate from any reporting of results. Data are stored securely and reported only in aggregate.</p>
+      <h2>Voluntary participation</h2>
+      <p>Taking part is entirely voluntary. You may stop at any time by closing this window, and you may skip any open-ended question you prefer not to answer. Declining will not affect you in any way.</p>
+      <h2>Questions</h2>
+      <p>If you have questions about this research, you may contact the research team through the platform you were recruited on.</p>
+    </div>
+    <div class="q">
+      ${q("","I have read the information above, I am 18 or older, and I agree to take part.")}
+      ${radios("consent",[{v:"yes",t:"Yes, I agree to take part"},{v:"no",t:"No, I do not wish to take part"}])}
+    </div>`,
+  ()=>{
+    const c = val("consent"); if(!c) return false;
+    D.consent = c;
+    if(c==="no"){
+      app.innerHTML = `<div class="card"><h1>Thank you</h1><p class="lead">You have declined to take part. You may close this window and return the submission on the recruitment platform.</p></div>`;
+      logEvent("screenout_consent"); submit("declined_consent"); return false;
+    }
+    logEvent("consent_yes");
+    return true;
+  }, {label:"Continue", err:"Please select an option to continue."});
+}
+
+function scrScreen1(){
+  show(`
+    <div class="kicker">A couple of quick questions</div>
+    <h1>Your use of AI tools</h1>
+    <div class="q">
+      ${q("1.","Have you used an AI chatbot (such as ChatGPT, Claude, Gemini, or Copilot) in the past 3 months?")}
+      ${radios("S1",[{v:"yes",t:"Yes"},{v:"no",t:"No"}])}
+    </div>
+    <div class="q">
+      ${q("2.","In a typical week, how often do you use AI chatbots?")}
+      ${radios("S2",[
+        {v:"5",t:"Multiple times a day"},{v:"4",t:"About once a day"},
+        {v:"3",t:"A few times a week"},{v:"2",t:"About once a week"},
+        {v:"1",t:"Less than once a week"}])}
+    </div>`,
+  ()=>{
+    if(!need(["S1","S2"])) return false;
+    D.S1 = val("S1"); D.S2 = +val("S2");
+    if(D.S1==="no"){
+      app.innerHTML = `<div class="card"><h1>Thank you</h1>
+        <p class="lead">Unfortunately you are not eligible for this study, which is only for people who have used an AI chatbot recently.</p>
+        <p>Please <strong>return the submission</strong> on the recruitment platform. You will not be penalised for returning it.</p></div>`;
+      logEvent("screenout_S1"); submit("screened_out"); return false;
+    }
+    return true;
+  });
+}
+
+/* ---------- vignette block ---------- */
+function scrVigIntro(){
+  show(`
+    <div class="kicker">Part ${D.block_order==="vignettes_first"?"1":"2"} of 4</div>
+    <h1>Three short exchanges</h1>
+    <div class="note">On the next three screens you will see short exchanges with an AI assistant. In each one, someone asked a question, waited a few minutes, then asked <strong>the exact same question again</strong>.</div>
+    <p class="lead">For each exchange, imagine it happened to you, and answer the questions underneath.</p>`,
+  ()=>true, {label:"Start"});
+}
+
+function scrVignette(k, pos){
+  const V = VIGNETTES[k];
+  let items = `<div class="q">${q("1.","I would have no way of telling which of these two answers to go with.")}${likert("V1")}</div>`;
+  if(V.two) items += `<div class="q">${q("2.","One of these two answers is clearly the better one to act on.")}${likert("V2")}</div>`;
+  items += `<div class="q">${q(V.two?"3.":"2.","The information the AI gave here is accurate.")}${likert("V3")}</div>`;
+  if(V.two) items += `<div class="q">${q("4.","If this happened to you, what would you most likely do next?")}
+    ${radios("V4",[
+      {v:"go",t:"Go with one of the answers"},{v:"again",t:"Ask the AI again"},
+      {v:"nonai",t:"Check a source that isn&rsquo;t AI"},{v:"person",t:"Ask another person"},
+      {v:"drop",t:"Drop the question"}])}</div>`;
+
+  show(`
+    <div class="kicker">Exchange ${pos} of 3</div>
+    ${chat(V.q, V.a1, V.a2, V.t1, V.t2)}
+    ${items}`,
+  ()=>{
+    const req = V.two ? ["V1","V2","V3","V4"] : ["V1","V3"];
+    if(!need(req)) return false;
+    D["v"+k+"_type"]=V.type; D["v"+k+"_pos"]=pos;
+    D["v"+k+"_V1"]=+val("V1"); D["v"+k+"_V3"]=+val("V3");
+    if(V.two){ D["v"+k+"_V2"]=+val("V2"); D["v"+k+"_V4"]=val("V4"); }
+    return true;
+  });
+}
+
+/* ---------- beliefs block ---------- */
+const G_ITEMS = [
+  ["G1","When I ask an AI for a recommendation, the answer I get is one of several it could have given."],
+  ["G2","For a lot of the questions I ask an AI, there isn&rsquo;t one right answer it should be giving."],
+  ["G3","When an AI gives two different answers to the same question, usually one of them is more correct."],
+  ["G4","I often can&rsquo;t tell which of an AI&rsquo;s possible answers I should act on."],
+  ["G5","The answer I get from an AI depends on when I happen to ask, not just what I ask."],
+  ["AC1","For this item, please select &ldquo;Somewhat disagree&rdquo;."]
+];
+function scrBeliefs(){
+  const order = shuffle(G_ITEMS.map((x,i)=>i));
+  D.G_order = order.map(i=>G_ITEMS[i][0]).join(",");
+  let h = `<div class="kicker">Part ${D.block_order==="beliefs_first"?"1":"2"} of 4</div>
+    <h1>AI chatbots in general</h1>
+    <p class="lead">These are general statements about AI chatbots. There are no right or wrong answers &mdash; we just want your view.</p>`;
+  order.forEach((i,n)=>{ const [code,text]=G_ITEMS[i];
+    h += `<div class="q">${q((n+1)+".",text)}${likert(code)}</div>`; });
+  show(h, ()=>{
+    if(!need(G_ITEMS.map(x=>x[0]))) return false;
+    G_ITEMS.forEach(([c])=> D[c] = +val(c));
+    D.AC1_pass = (D.AC1===3)?1:0;
+    return true;
+  });
+}
+
+/* ---------- experience ---------- */
+function scrExpIntro(){
+  show(`
+    <div class="kicker">Part 3 of 4</div>
+    <h1>Your own experience</h1>
+    <div class="note">Sometimes when people ask an AI chatbot the same question more than once, they get answers that <strong>point in different directions</strong> &mdash; not just worded differently, but actually recommending or concluding something different.</div>
+    <div class="q">
+      ${q("1.","In the past month, has an AI chatbot given you answers that pointed in different directions when you asked it the same thing?")}
+      ${radios("P1",[{v:"yes",t:"Yes"},{v:"no",t:"No"},{v:"unsure",t:"Not sure"}])}
+    </div>`,
+  ()=>{ if(!val("P1")) return false; D.P1 = val("P1"); return true; });
+}
+function scrExpDetail(){
+  if(D.P1!=="yes"){ idx++; return runScreen(); }
+  show(`
+    <div class="kicker">Part 3 of 4</div>
+    <h1>Tell us about it</h1>
+    <div class="q">
+      ${q("1.","In the past month, about how many times has that happened?")}
+      ${radios("P2",[{v:"1",t:"Once"},{v:"2",t:"2&ndash;3 times"},{v:"3",t:"4&ndash;5 times"},
+                     {v:"4",t:"6&ndash;10 times"},{v:"5",t:"More than 10 times"}])}
+    </div>
+    <div class="q">
+      ${q("2.","In one or two sentences, describe a specific time this happened. What were you asking about, and how did the answers differ?")}
+      <textarea id="P3" rows="4" placeholder="Type your answer here"></textarea>
+    </div>
+    <div class="q">
+      ${q("3.","What did you do about it? Select all that apply.")}
+      ${checks("P4",[
+        {v:"go",t:"Went with one of the answers"},{v:"again",t:"Asked the AI again"},
+        {v:"otherai",t:"Asked a different AI"},{v:"nonai",t:"Checked a source that isn&rsquo;t AI"},
+        {v:"person",t:"Asked another person"},{v:"save",t:"Saved or screenshotted the answers"},
+        {v:"drop",t:"Dropped the question"},{v:"other",t:"Something else"}])}
+    </div>`,
+  ()=>{
+    if(!val("P2")) return false;
+    if(vals("P4").length===0) return false;
+    D.P2 = +val("P2");
+    D.P3 = (document.getElementById("P3").value||"").slice(0,2000);
+    D.P4 = vals("P4").join(",");
+    return true;
+  }, {err:"Please answer the first and third questions. The written answer is optional."});
+}
+
+/* ---------- comparison items ---------- */
+const D_ITEMS = [
+  ["D1","When I ask an AI to regenerate a response, I can&rsquo;t predict whether the next one will be better or worse."],
+  ["D2","AI chatbots react unpredictably."],
+  ["D3","There is a consistent pattern in how AI chatbots behave."]
+];
+function scrCompare(){
+  const order = shuffle(D_ITEMS.map((x,i)=>i));
+  D.D_order = order.map(i=>D_ITEMS[i][0]).join(",");
+  let h = `<div class="kicker">Part 4 of 4</div><h1>A few more statements</h1>
+    <p class="lead">Same scale as before.</p>`;
+  order.forEach((i,n)=>{ const [c,t]=D_ITEMS[i]; h += `<div class="q">${q((n+1)+".",t)}${likert(c)}</div>`; });
+  show(h, ()=>{ if(!need(D_ITEMS.map(x=>x[0]))) return false;
+    D_ITEMS.forEach(([c])=> D[c] = +val(c)); return true; });
+}
+
+function scrBoundary(){
+  show(`
+    <div class="kicker">Part 4 of 4</div>
+    <h1>Where it happens</h1>
+    <div class="q">
+      ${q("1.","For which kinds of questions do you think an AI is most likely to give answers that point in different directions? Select all that apply.")}
+      ${checks("B1",[
+        {v:"product",t:"Product recommendations"},{v:"opinion",t:"Opinions and preferences"},
+        {v:"health",t:"Medical or health questions"},{v:"finance",t:"Financial questions"},
+        {v:"contested",t:"Contested advice (for example, diet or exercise)"},
+        {v:"facts",t:"Simple facts (for example, capital cities)"}])}
+    </div>`,
+  ()=>{ if(vals("B1").length===0) return false; D.B1 = vals("B1").join(","); return true; },
+  {err:"Please select at least one option."});
+}
+
+function scrDemo(){
+  show(`
+    <div class="kicker">Last page</div>
+    <h1>About you</h1>
+    <div class="q">${q("1.","What is your age?")}<input type="number" id="age" min="18" max="99" placeholder="Years"></div>
+    <div class="q">${q("2.","What is your gender?")}
+      ${radios("gender",[{v:"m",t:"Male"},{v:"f",t:"Female"},{v:"o",t:"Another gender"},{v:"na",t:"Prefer not to say"}])}
+    </div>`,
+  ()=>{
+    const a = document.getElementById("age").value;
+    if(!a || +a<18 || +a>99) return false;
+    if(!val("gender")) return false;
+    D.age = +a; D.gender = val("gender");
+    return true;
+  }, {label:"Finish", err:"Please enter an age between 18 and 99 and select an option."});
+}
+
+async function scrDone(){
+  app.innerHTML = `<div class="card center"><h1>Submitting your responses&hellip;</h1><p class="muted">Please do not close this window.</p></div>`;
+  document.getElementById("bar").style.width = "100%";
+  const ok = await submit("complete");
+  app.innerHTML = `
+    <div class="card">
+      <div class="kicker">Complete</div>
+      <h1>Thank you &mdash; you&rsquo;re finished</h1>
+      <p class="lead">Your responses have been recorded.</p>
+      <h2>What this study was about</h2>
+      <p>We are studying how people respond when an AI assistant gives more than one answer to the same question. Some of the exchanges you saw differed only in <em>wording</em>; one gave a genuinely <em>different recommendation</em>; one repeated the same answer. We are interested in whether those feel different to people.</p>
+      <p><strong>The exchanges you read were written by the research team for this study.</strong> They are not transcripts of real conversations, and the products mentioned were used only as realistic examples &mdash; nothing here should be taken as a product recommendation.</p>
+      <h2>Your completion code</h2>
+      <p class="center" style="margin:22px 0"><code class="cc">${CONFIG.completionCode}</code></p>
+      <p class="muted center">Copy this code back into the recruitment platform to confirm your participation.${ok?"":"<br><br><strong>Note:</strong> we had trouble saving your responses. Please contact the researchers through the platform."}</p>
+    </div>`;
+  window.scrollTo(0,0);
+}
+
+/* =====================================================================
+   FLOW
+   ===================================================================== */
+function runScreen(){
+  if(idx >= SCREENS.length) return;
+  SCREENS[idx].fn();
+}
+
+async function boot(){
+  SUBMISSION_ID = uuid();
+  D.submission_id = SUBMISSION_ID;
+  RNG = mulberry32(hashStr(SUBMISSION_ID)());
+
+  // counterbalanced block order, server-balanced
+  const cell = await assignCell();
+  D.block_order = cell; D.cond_cell = cell;
+
+  const vOrder = shuffle(["A","B","C"]);
+  D.vignette_order = vOrder.join(",");
+
+  const vignetteBlock = [
+    { id:"vig_intro", fn:scrVigIntro },
+    ...vOrder.map((k,i)=>({ id:"vig_"+k, fn:()=>scrVignette(k, i+1) }))
+  ];
+  const beliefBlock = [ { id:"beliefs", fn:scrBeliefs } ];
+
+  SCREENS = [
+    { id:"device",  fn:scrDevice },
+    { id:"consent", fn:scrConsent },
+    { id:"screen1", fn:scrScreen1 },
+    ...(cell==="vignettes_first" ? [...vignetteBlock, ...beliefBlock]
+                                 : [...beliefBlock, ...vignetteBlock]),
+    { id:"exp_intro",  fn:scrExpIntro },
+    { id:"exp_detail", fn:scrExpDetail },
+    { id:"compare",    fn:scrCompare },
+    { id:"boundary",   fn:scrBoundary },
+    { id:"demo",       fn:scrDemo },
+    { id:"done",       fn:scrDone }
+  ];
+  logEvent("start", cell);
+  runScreen();
+}
+boot();
+</script>
+</body>
+</html>
