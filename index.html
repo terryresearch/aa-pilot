@@ -175,7 +175,9 @@ const CONFIG = {
   table:  "aa_responses",
   events: "aa_events",
   rpc:    "aa_assign_condition",
-  completionCode: "C1KZ9QW4",
+  completionCode: "C140L4QS",
+  prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=C140L4QS",
+  redirectDelayMs: 15000,
   cells: ["vignettes_first","beliefs_first"]
 };
 
@@ -500,15 +502,30 @@ function scrVignette(k, pos){
   // Identical five questions on every vignette, same order, every time.
   // Manipulation check last, after the dependent measures.
   const QS = [
-    { id:"V1", kind:"lik", t:"I would have no way of telling which of these two answers to follow." },
-    { id:"V2", kind:"lik", t:"One of these answers is clearly better advice than the other." },
-    { id:"V3", kind:"lik", t:"What the AI said here is accurate." },
-    { id:"V4", kind:"rad", t:"If this were your question, what would you most likely do next?",
+    // --- focal DV: warrant collapse (3 indicators) ---
+    { id:"ADJ1", kind:"lik", t:"I would have no way of telling which of these two answers to follow." },
+    { id:"ADJ2", kind:"lik", t:"If I had to act on one of these answers, the choice would feel arbitrary." },
+    { id:"ADJ3", kind:"lik", t:"I would be stuck deciding what to actually do here." },
+    // --- equal-defensibility check (discriminant hinge vs Yang et al.) ---
+    { id:"DEF",  kind:"lik", t:"One of these answers is clearly better advice than the other." },
+    // --- accuracy channel (the dissociation) ---
+    { id:"ACC1", kind:"lik", t:"What the AI said here is accurate." },
+    { id:"ACC2", kind:"lik", t:"I am confident that good information is somewhere in these two answers." },
+    // --- verification futility (the mediator), reverse-scored ---
+    { id:"FUT",  kind:"lik", t:"Asking the AI the same question again would help me work out which answer to go with." },
+    // --- trust (the Posner comparison) ---
+    { id:"TRUST",kind:"lik", t:"I would trust this AI to help me with a decision like this." },
+    // --- behaviour ---
+    { id:"NEXT", kind:"rad", t:"If this were your question, what would you most likely do next?",
       opts:[{v:"follow",t:"Follow one of the two answers"},{v:"again",t:"Ask the AI again"},
             {v:"nonai",t:"Look it up somewhere that isn&rsquo;t AI"},{v:"person",t:"Ask someone I know"},
             {v:"drop",t:"Leave the decision for now"}] },
-    { id:"MC", kind:"lik", t:"Both times, the AI gave essentially the same advice." }
+    // --- manipulation check, last ---
+    { id:"MC",   kind:"lik", t:"Both times, the AI gave essentially the same advice." }
   ];
+  const REVEAL_CHUNK = 3;   // set to 1 to go back to strictly one question at a time
+  const CHUNKS = [];
+  for(let i=0;i<QS.length;i+=REVEAL_CHUNK) CHUNKS.push(QS.slice(i,i+REVEAL_CHUNK).map((_,j)=>i+j));
 
   const qBody = QS.map((qq,i)=>
     `<div class="q qhide" id="q_${i}">${q((i+1)+" of "+QS.length+".", qq.t)}` +
@@ -539,25 +556,40 @@ function scrVignette(k, pos){
   setTimeout(()=>{ const b=document.getElementById("askagain"); if(b) b.disabled = false; }, READ1_MS);
 
   function answered(i){ return !!document.querySelector(`input[name="${QS[i].id}"]:checked`); }
-  function reveal(i){
-    if(i>=QS.length){
+  function chunkDone(c){ return CHUNKS[c].every(i=>answered(i)); }
+  function reveal(c){
+    if(c>=CHUNKS.length){
       const br=document.getElementById("btnrow");
       br.classList.remove("qhide"); br.classList.add("qshow");
       br.scrollIntoView({behavior:"smooth", block:"center"});
       return;
     }
-    shown = i;
-    const el = document.getElementById("q_"+i);
-    el.classList.remove("qhide"); el.classList.add("qshow");
-    revealedAt[QS[i].id] = Date.now();
-    if(i>0) el.scrollIntoView({behavior:"smooth", block:"center"});
+    shown = c;
+    CHUNKS[c].forEach(i=>{
+      const el = document.getElementById("q_"+i);
+      el.classList.remove("qhide"); el.classList.add("qshow");
+      revealedAt[QS[i].id] = Date.now();
+    });
+    if(c>0) document.getElementById("q_"+CHUNKS[c][0]).scrollIntoView({behavior:"smooth", block:"center"});
+    // Self-heal: if this chunk arrives already complete (restored form state, very fast
+    // input, assistive tech), no further change event will fire for it — advance anyway,
+    // otherwise the participant is stranded with no Continue button.
+    if(chunkDone(c)) setTimeout(()=>reveal(c+1), 260);
   }
 
   document.getElementById("qzone").addEventListener("change",(ev)=>{
     const nm = ev.target && ev.target.name; if(!nm) return;
     const i = QS.findIndex(x=>x.id===nm); if(i<0) return;
     if(!answeredAt[nm]) answeredAt[nm] = Date.now();
-    if(i===shown && answered(i)) setTimeout(()=>reveal(i+1), 250);
+    if(shown>=0 && CHUNKS[shown].includes(i) && chunkDone(shown)) setTimeout(()=>reveal(shown+1), 260);
+    // Backstop: everything answered means the Continue button must be reachable,
+    // whatever order the answers arrived in.
+    if(QS.every((_,j)=>answered(j))){
+      QS.forEach((_,j)=>{ const el=document.getElementById("q_"+j);
+        el.classList.remove("qhide"); el.classList.add("qshow"); });
+      const br=document.getElementById("btnrow");
+      br.classList.remove("qhide"); br.classList.add("qshow");
+    }
   });
 
   /* --- gate 2: revealing the second answer, then the questions --- */
@@ -615,6 +647,38 @@ function scrBeliefs(){
     if(!need(G_ITEMS.map(x=>x[0]))) return false;
     G_ITEMS.forEach(([c])=> D[c] = +val(c));
     D.AC1_pass = (D.AC1===3)?1:0;
+    return true;
+  });
+}
+
+/* ---------- human vs AI comparison (Chris's category-violation test) ---------- */
+function scrHumanAI(){
+  show(`
+    <div class="kicker">A quick comparison</div>
+    <h1>People and AI</h1>
+    <p class="lead">Two quick questions about getting different advice on different occasions, and one comparison.</p>
+    <div class="q">
+      ${q("1.","When a <strong>person you trust</strong> gives you different advice on two different occasions, how surprising is that?")}
+      <div class="lik">${[1,2,3,4,5,6,7].map(i=>`<label><input type="radio" name="HV1" value="${i}"><span class="n">${i}</span></label>`).join("")}</div>
+      <div class="anchors"><span>1 &nbsp;Not at all surprising</span><span>Very surprising&nbsp; 7</span></div>
+    </div>
+    <div class="q">
+      ${q("2.","When an <strong>AI</strong> gives you different advice on two different occasions, how surprising is that?")}
+      <div class="lik">${[1,2,3,4,5,6,7].map(i=>`<label><input type="radio" name="HV2" value="${i}"><span class="n">${i}</span></label>`).join("")}</div>
+      <div class="anchors"><span>1 &nbsp;Not at all surprising</span><span>Very surprising&nbsp; 7</span></div>
+    </div>
+    <div class="q">
+      ${q("3.","Which would bother you more?")}
+      ${radios("HV3",[
+        {v:"1",t:"A person being inconsistent, much more"},
+        {v:"2",t:"A person being inconsistent, somewhat more"},
+        {v:"3",t:"About the same"},
+        {v:"4",t:"An AI being inconsistent, somewhat more"},
+        {v:"5",t:"An AI being inconsistent, much more"}])}
+    </div>`,
+  ()=>{
+    if(!need(["HV1","HV2","HV3"])) return false;
+    D.HV1=+val("HV1"); D.HV2=+val("HV2"); D.HV3=+val("HV3");
     return true;
   });
 }
@@ -716,19 +780,56 @@ async function scrDone(){
   app.innerHTML = `<div class="card center"><h1>Submitting your responses&hellip;</h1><p class="muted">Please do not close this window.</p></div>`;
   document.getElementById("bar").style.width = "100%";
   const ok = await submit("complete");
+  window.scrollTo(0,0);
+
+  if(!ok){
+    // Never bounce someone to Prolific when their data did not save.
+    app.innerHTML = `
+      <div class="card">
+        <div class="kicker" style="color:var(--warn)">Could not save</div>
+        <h1>We couldn&rsquo;t save your responses</h1>
+        <p class="lead">Your answers may not have been recorded. Please do not close this window yet.</p>
+        <p>Copy the completion code below into Prolific so you are paid, and message the researchers through the platform to let them know this message appeared.</p>
+        <p class="center" style="margin:22px 0"><code class="cc">${CONFIG.completionCode}</code></p>
+        <p class="center"><a class="btn" style="text-decoration:none;display:inline-block"
+           href="${CONFIG.prolificReturnUrl}">Return to Prolific</a></p>
+      </div>`;
+    logEvent("done_no_save");
+    return;
+  }
+
+  logEvent("complete");
+  const secs = Math.round(CONFIG.redirectDelayMs/1000);
   app.innerHTML = `
     <div class="card">
       <div class="kicker">Complete</div>
       <h1>Thank you &mdash; you&rsquo;re finished</h1>
       <p class="lead">Your responses have been recorded.</p>
+
       <h2>What this study was about</h2>
-      <p>We are studying how people respond when an AI assistant gives more than one answer to the same question. Some of the exchanges you saw differed only in <em>wording</em>; one gave a genuinely <em>different recommendation</em>; one repeated the same answer. We are interested in whether those feel different to people.</p>
-      <p><strong>The exchanges you read were written by the research team for this study.</strong> They are not transcripts of real conversations, and the products mentioned were used only as realistic examples &mdash; nothing here should be taken as a product recommendation.</p>
-      <h2>Your completion code</h2>
-      <p class="center" style="margin:22px 0"><code class="cc">${CONFIG.completionCode}</code></p>
-      <p class="muted center">Copy this code back into the recruitment platform to confirm your participation.${ok?"":"<br><br><strong>Note:</strong> we had trouble saving your responses. Please contact the researchers through the platform."}</p>
+      <p>We are studying how people respond when an AI assistant gives more than one answer to the same question. In two of the conversations you saw, the AI gave genuinely <em>different</em> advice the second time. In the third, it gave the <em>same</em> advice in different words. We are interested in whether those feel different to people, and in particular whether the second kind leaves you without any basis for choosing.</p>
+      <p><strong>The conversations you read were written by the research team for this study.</strong> They are not transcripts of real conversations, and nothing in them should be taken as advice about relationships, insurance, or exercise.</p>
+
+      <h2>Returning to Prolific</h2>
+      <p>You will be returned to Prolific automatically in <strong id="cd">${secs}</strong> seconds. If nothing happens, use the button below.</p>
+      <p class="center" style="margin:20px 0">
+        <a class="btn" id="goback" style="text-decoration:none;display:inline-block"
+           href="${CONFIG.prolificReturnUrl}">Finish and return to Prolific</a>
+      </p>
+      <p class="muted center">If the button does not work, your completion code is <code class="cc" style="font-size:15px;padding:5px 12px">${CONFIG.completionCode}</code></p>
     </div>`;
-  window.scrollTo(0,0);
+
+  // Wall-clock, not tick-counting: browsers throttle timers in background tabs, and a
+  // participant who switches to Prolific mid-countdown must still be returned on time.
+  const deadline = Date.now() + CONFIG.redirectDelayMs;
+  const tick = setInterval(()=>{
+    const left = Math.max(0, Math.ceil((deadline - Date.now())/1000));
+    const el = document.getElementById("cd");
+    if(el) el.textContent = left;
+    if(left<=0){ clearInterval(tick); window.location.replace(CONFIG.prolificReturnUrl); }
+  }, 500);
+  const b = document.getElementById("goback");
+  if(b) b.addEventListener("click", ()=>{ clearInterval(tick); });
 }
 
 /* =====================================================================
@@ -763,6 +864,7 @@ async function boot(){
     { id:"screen1", fn:scrScreen1 },
     ...(cell==="vignettes_first" ? [...vignetteBlock, ...beliefBlock]
                                  : [...beliefBlock, ...vignetteBlock]),
+    { id:"humanai",    fn:scrHumanAI },
     { id:"exp_intro",  fn:scrExpIntro },
     { id:"exp_detail", fn:scrExpDetail },
     { id:"compare",    fn:scrCompare },
