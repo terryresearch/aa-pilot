@@ -106,7 +106,9 @@
     display:flex;align-items:center;justify-content:center;margin-top:2px;
   }
   .a-av svg{width:15px;height:15px;fill:#fff}
-  .a-txt{font-size:15.5px;line-height:1.62;color:var(--ink);padding-top:1px}
+  .a-txt{font-size:15.3px;line-height:1.66;color:var(--ink);padding-top:1px}
+  .a-txt p{margin:0 0 11px;color:var(--ink)}
+  .a-txt p:last-child{margin-bottom:0}
   .gap{
     display:flex;align-items:center;gap:12px;margin:22px 0 4px;
   }
@@ -114,6 +116,26 @@
   .gap span{font-size:12.5px;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
 
   .note{background:var(--accent-soft);border-radius:10px;padding:15px 18px;font-size:15.5px;color:var(--ink2);margin:0 0 26px}
+  /* ---------- split layout for vignette screens ---------- */
+  .wrap.wide{max-width:1220px}
+  .vhead{margin:0 0 22px}
+  .vsplit{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);gap:38px;align-items:start}
+  .vleft{position:sticky;top:22px;max-height:calc(100vh - 44px);overflow-y:auto;overscroll-behavior:contain}
+  .vleft::-webkit-scrollbar{width:9px}
+  .vleft::-webkit-scrollbar-thumb{background:#D7DCE2;border-radius:5px}
+  .vright{min-height:60vh}
+  .waiting{
+    border:1.5px dashed var(--line2);border-radius:12px;padding:30px 26px;color:var(--muted);
+    font-size:15.5px;line-height:1.6;background:#FCFCFB;
+  }
+  .askbtn{
+    display:inline-flex;align-items:center;gap:10px;appearance:none;border:1.5px solid var(--accent);
+    background:var(--surface);color:var(--accent);font:inherit;font-weight:620;font-size:15px;
+    padding:12px 22px;border-radius:9px;cursor:pointer;transition:all .14s ease;margin:6px 0 2px;
+  }
+  .askbtn:hover{background:var(--accent);color:#fff}
+  .askbtn[disabled]{opacity:.4;cursor:not-allowed;border-color:var(--line2);color:var(--muted);background:var(--surface)}
+  .askwrap{display:flex;justify-content:center;padding:14px 0 2px}
   .qhide{display:none}
   .qshow{display:block;animation:qfade .3s ease}
   @keyframes qfade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -132,6 +154,7 @@
     display:inline-block;background:var(--ink);color:#fff;padding:9px 20px;border-radius:8px;
     font-size:19px;letter-spacing:.09em;font-weight:600;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   }
+  @media (max-width:1180px){ .vsplit{gap:26px} .wrap.wide{max-width:100%;padding-left:24px;padding-right:24px} }
   @media (max-width:820px){ .wrap{padding:40px 20px 90px} }
 </style>
 </head>
@@ -245,41 +268,91 @@ window.addEventListener("pagehide", ()=>{
    ===================================================================== */
 const AVATAR = '<svg viewBox="0 0 24 24"><path d="M12 2a1 1 0 0 1 1 1v1.06a7.01 7.01 0 0 1 5.94 5.94H20a1 1 0 1 1 0 2h-1.06a7.01 7.01 0 0 1-5.94 5.94V19a1 1 0 1 1-2 0v-1.06A7.01 7.01 0 0 1 5.06 12H4a1 1 0 1 1 0-2h1.06A7.01 7.01 0 0 1 11 4.06V3a1 1 0 0 1 1-1Zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>';
 
-function chat(question, a1, a2, t1, t2){
+function paras(arr){ return arr.map(x=>"<p>"+x+"</p>").join(""); }
+
+function chatHTML(V, revealed){
+  let second = "";
+  if(revealed){
+    second = `
+      <div class="gap"><span>You asked the same question again, a few minutes later</span></div>
+      <div class="turn">
+        <div class="u-row"><div class="u-bub">${V.q}</div></div>
+        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${paras(V.a2)}</div></div>
+      </div>`;
+  } else {
+    second = `
+      <div class="askwrap">
+        <button class="askbtn" id="askagain" disabled>
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+          See what the AI said the second time
+        </button>
+      </div>`;
+  }
   return `
   <div class="chat">
     <div class="chat-top"><span class="chat-dot"></span><span class="chat-name">AI Assistant</span></div>
     <div class="chat-body">
       <div class="turn">
-        <div class="u-row"><div class="u-bub">${question}</div></div>
-        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${a1}</div></div>
+        <div class="u-row"><div class="u-bub">${V.q}</div></div>
+        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${paras(V.a1)}</div></div>
       </div>
-      <div class="gap"><span>${t1}</span></div>
-      <div class="turn">
-        <div class="u-row"><div class="u-bub">${question}</div></div>
-        <div class="a-row"><div class="a-av">${AVATAR}</div><div class="a-txt">${a2}</div></div>
-      </div>
-      <div class="gap" style="margin-top:18px"><span>${t2}</span></div>
+      ${second}
     </div>
   </div>`;
 }
 
 const VIGNETTES = {
-  A: { key:"A", type:"substantive",
-    q:"What&rsquo;s a good laptop for a college student, under $600?",
-    a1:"I&rsquo;d go with the <strong>Acer Aspire 5</strong>. It&rsquo;s the best value in that price range &mdash; solid build, good battery, and it handles coursework easily.",
-    a2:"The <strong>Lenovo IdeaPad Slim 3</strong> is your best bet under $600. Lighter than most, battery lasts the day, and plenty of power for classwork.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation" },
-  B: { key:"B", type:"formal",
-    q:"What&rsquo;s a good beginner camera, under $500?",
-    a1:"I&rsquo;d recommend the <strong>Canon EOS R100</strong>. It&rsquo;s the easiest entry-level model to learn on, and the kit lens covers most everyday shooting.",
-    a2:"The <strong>Canon EOS R100</strong> is the one I&rsquo;d suggest. It&rsquo;s very beginner-friendly, and the lens it comes with handles most situations you&rsquo;ll run into.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation" },
-  C: { key:"C", type:"none",
-    q:"What&rsquo;s a good pair of running shoes for a beginner, under $100?",
-    a1:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
-    a2:"I&rsquo;d go with the <strong>Brooks Launch</strong>. It&rsquo;s a reliable neutral trainer at that price, and it suits most beginners.",
-    t1:"Asked again 5 minutes later", t2:"End of conversation" }
+
+  /* ---- A: SUBSTANTIVE — interpersonal advice ---- */
+  A: { key:"A", type:"substantive", domain:"relationship",
+    q:"My partner and I keep having the same argument about money every few weeks. Should I bring it up again this weekend, or let it go for now?",
+    a1:[
+      "I&rsquo;d bring it up &mdash; but change <em>how</em> you bring it up.",
+      "Recurring arguments usually repeat because the conversation keeps getting reset rather than resolved. Waiting tends to let resentment build quietly, so the next argument starts from a worse place than the last one did.",
+      "Pick a low-stakes moment this weekend and open with the pattern rather than the incident &mdash; something like &ldquo;I&rsquo;ve noticed we keep landing in the same argument, and I don&rsquo;t think either of us likes it.&rdquo; That frames it as a shared problem instead of a complaint.",
+      "Try to agree on one concrete thing before the conversation ends: a spending amount you&rsquo;ll check with each other above, or a short monthly money check-in. One small commitment is worth more than a long discussion."
+    ],
+    a2:[
+      "I&rsquo;d hold off this weekend.",
+      "If it&rsquo;s come up every few weeks and keeps ending the same way, the problem probably isn&rsquo;t the specific disagreement &mdash; it&rsquo;s that you&rsquo;re both walking into the conversation already braced for it. Raising it again while that&rsquo;s still fresh tends to reproduce the same argument rather than move it.",
+      "Give it a couple of weeks without bringing it up. Use that time to get specific with yourself about what actually bothers you: is it the amount, the surprise, or the feeling of not being consulted? Those are three different conversations and they don&rsquo;t have the same fix.",
+      "When you do come back to it, you&rsquo;ll be raising something particular rather than reopening a familiar fight &mdash; and that tends to go somewhere."
+    ]
+  },
+
+  /* ---- B: SUBSTANTIVE — insurance choice ---- */
+  B: { key:"B", type:"substantive", domain:"insurance",
+    q:"I&rsquo;m 34 and healthy. My job offers a high-deductible health plan with an HSA, or a traditional PPO with higher premiums. Which should I take?",
+    a1:[
+      "For your situation I&rsquo;d lean toward the <strong>high-deductible plan with the HSA</strong>.",
+      "At 34 and in good health, you&rsquo;re statistically unlikely to reach the deductible in a given year, which means the PPO&rsquo;s higher premiums are largely buying coverage you won&rsquo;t use.",
+      "The stronger argument is the HSA itself. It&rsquo;s the only account that is tax-free going in, tax-free while it grows, and tax-free coming out for medical costs &mdash; and after 65 it behaves like a traditional retirement account. Anything you don&rsquo;t spend rolls over permanently.",
+      "The one thing to check first: whether you have enough cash on hand to absorb the full deductible if something unexpected happens. If you do, the high-deductible plan is usually the better long-run choice."
+    ],
+    a2:[
+      "For your situation I&rsquo;d lean toward the <strong>PPO</strong>.",
+      "&ldquo;Healthy at 34&rdquo; describes most people right up until it doesn&rsquo;t, and the high-deductible plan moves that risk onto you. One injury, or a diagnosis that needs a few months of specialist visits, can take you to the full deductible quickly &mdash; and that arrives as a single large bill rather than a predictable monthly cost.",
+      "The HSA tax advantages are real, but they only pay off if you can leave the money invested instead of spending it on care. That&rsquo;s a harder condition to meet than it sounds, and most people don&rsquo;t.",
+      "The one thing to check first: your out-of-pocket maximum and whether your regular doctors are in network. If the premium difference is modest, the predictability is usually worth paying for."
+    ]
+  },
+
+  /* ---- C: FORMAL — same advice, different wording ---- */
+  C: { key:"C", type:"formal", domain:"fitness",
+    q:"I want to start running but I&rsquo;ve never managed to stick with exercise. How should I start?",
+    a1:[
+      "Start with run-walk intervals rather than trying to run continuously.",
+      "Three sessions a week is enough. Try one minute of easy jogging followed by two minutes of walking, repeated for about twenty minutes. As that starts to feel comfortable, extend the running interval and shorten the walking.",
+      "Keep the pace slow enough that you could hold a conversation. Most people who quit early do so because they run too hard, not because they run too little.",
+      "Don&rsquo;t add a fourth day for at least a month. The habit is the thing you&rsquo;re building right now &mdash; the fitness follows on its own."
+    ],
+    a2:[
+      "Begin by alternating running and walking instead of trying to run the whole way.",
+      "Aim for three days a week. A good starting structure is jogging gently for a minute, then walking for two, cycling through that for roughly twenty minutes. Once it stops feeling hard, stretch out the jogging portion and trim the walking.",
+      "Run slowly &mdash; slow enough to talk while you&rsquo;re doing it. Going out too fast is the usual reason people give up, far more often than not doing enough.",
+      "Hold off on a fourth session for the first month or so. What you&rsquo;re establishing right now is the routine; the fitness takes care of itself."
+    ]
+  }
 };
 
 const AGREE = ["Strongly<br>disagree","Disagree","Somewhat<br>disagree","Neither","Somewhat<br>agree","Agree","Strongly<br>agree"];
@@ -316,6 +389,7 @@ function q(n, text){ return `<div class="qtext"><span class="qnum">${n}</span>${
 function show(html, onNext, opts){
   opts = opts || {};
   T.screenStart = Date.now();
+  const wr = document.querySelector(".wrap"); if(wr) wr.classList.remove("wide");
   app.innerHTML = html + (opts.noBtn ? '' :
     `<div class="btn-row"><button class="btn" id="next">${opts.label||"Continue"}</button></div>
      <div class="err" id="err">${opts.err||"Please answer every question before continuing."}</div>`);
@@ -339,8 +413,8 @@ function need(names){ for(const n of names){ if(!val(n)) return false; } return 
    SCREENS
    ===================================================================== */
 function scrDevice(){
-  const small = window.innerWidth < 860;
-  const touch = ('ontouchstart' in window) && window.innerWidth < 1100;
+  const small = window.innerWidth < 1000;
+  const touch = ('ontouchstart' in window) && window.innerWidth < 1180;
   if(!(small||touch)) { idx++; return runScreen(); }
   app.innerHTML = `<div class="card"><div class="kicker">Desktop required</div>
     <h1>Please open this study on a computer</h1>
@@ -415,53 +489,59 @@ function scrVigIntro(){
   show(`
     <div class="kicker">Part ${D.block_order==="vignettes_first"?"1":"2"} of 4</div>
     <h1>Three short exchanges</h1>
-    <div class="note">On the next three screens you will see short exchanges with an AI assistant. In each one, someone asked a question, waited a few minutes, then asked <strong>the exact same question again</strong>.</div>
-    <p class="lead">Please read each exchange carefully. The questions will appear one at a time once you have had a moment to read, and the exchange stays on screen while you answer.</p>`,
+    <div class="note">On the next three screens you will see someone put a question to an AI assistant, read the answer, then ask <strong>the exact same question again</strong> a few minutes later.</div>
+    <p class="lead">Read the first answer, then use the button to see what the AI said the second time. The questions appear on the right, one at a time, and the conversation stays on screen while you answer.</p>`,
   ()=>true, {label:"Start"});
 }
 
 function scrVignette(k, pos){
   const V = VIGNETTES[k];
 
-  // Identical five questions on every exchange, in the same order, always.
-  // The manipulation check comes last, after the dependent measures.
+  // Identical five questions on every vignette, same order, every time.
+  // Manipulation check last, after the dependent measures.
   const QS = [
-    { id:"V1", kind:"lik", t:"I would have no way of telling which answer to act on." },
-    { id:"V2", kind:"lik", t:"One of these answers is more likely to be correct than the other." },
-    { id:"V3", kind:"lik", t:"The information the AI gave here is accurate." },
-    { id:"V4", kind:"rad", t:"If this happened to you, what would you most likely do next?",
-      opts:[{v:"go",t:"Go with one of the answers"},{v:"again",t:"Ask the AI again"},
-            {v:"nonai",t:"Check a source that isn&rsquo;t AI"},{v:"person",t:"Ask another person"},
-            {v:"drop",t:"Drop the question"}] },
-    { id:"MC", kind:"lik", t:"Both times, the AI gave the same recommendation." }
+    { id:"V1", kind:"lik", t:"I would have no way of telling which of these two answers to follow." },
+    { id:"V2", kind:"lik", t:"One of these answers is clearly better advice than the other." },
+    { id:"V3", kind:"lik", t:"What the AI said here is accurate." },
+    { id:"V4", kind:"rad", t:"If this were your question, what would you most likely do next?",
+      opts:[{v:"follow",t:"Follow one of the two answers"},{v:"again",t:"Ask the AI again"},
+            {v:"nonai",t:"Look it up somewhere that isn&rsquo;t AI"},{v:"person",t:"Ask someone I know"},
+            {v:"drop",t:"Leave the decision for now"}] },
+    { id:"MC", kind:"lik", t:"Both times, the AI gave essentially the same advice." }
   ];
 
-  const body = QS.map((qq,i)=>
+  const qBody = QS.map((qq,i)=>
     `<div class="q qhide" id="q_${i}">${q((i+1)+" of "+QS.length+".", qq.t)}` +
     (qq.kind==="lik" ? likert(qq.id) : radios(qq.id, qq.opts)) + `</div>`).join("");
 
   T.screenStart = Date.now();
+  document.querySelector(".wrap").classList.add("wide");
   app.innerHTML =
-    `<div class="kicker">Exchange ${pos} of 3</div>` +
-    chat(V.q, V.a1, V.a2, V.t1, V.t2) +
-    `<div class="readnote" id="readnote"><span class="rdot"></span><span>Take a moment to read the exchange above. The first question will appear shortly.</span></div>` +
-    `<div id="qzone">${body}</div>` +
-    `<div class="btn-row qhide" id="btnrow"><button class="btn" id="next">Continue</button></div>`;
+    `<div class="vhead"><div class="kicker">Conversation ${pos} of 3</div></div>
+     <div class="vsplit">
+       <div class="vleft" id="vleft">${chatHTML(V, false)}</div>
+       <div class="vright" id="vright">
+         <div class="waiting" id="waiting">Read the answer on the left. When you are ready, use the button underneath it to see what the AI said the second time &mdash; the questions will appear here.</div>
+         <div id="qzone">${qBody}</div>
+         <div class="btn-row qhide" id="btnrow"><button class="btn" id="next">Continue</button></div>
+       </div>
+     </div>`;
   document.getElementById("bar").style.width = Math.round((idx/SCREENS.length)*100)+"%";
   window.scrollTo(0,0);
-  wire();
 
-  const revealedAt = {};
-  const answeredAt = {};
+  const revealedAt = {}, answeredAt = {};
   let shown = -1;
+  const tEnter = Date.now();
 
-  function answered(i){
-    const el = document.querySelector(`input[name="${QS[i].id}"]:checked`);
-    return !!el;
-  }
+  /* --- gate 1: the "ask again" button unlocks after a short read window --- */
+  const READ1_MS = 5000, READ2_MS = 4500;
+  const askBtn = document.getElementById("askagain");
+  setTimeout(()=>{ const b=document.getElementById("askagain"); if(b) b.disabled = false; }, READ1_MS);
+
+  function answered(i){ return !!document.querySelector(`input[name="${QS[i].id}"]:checked`); }
   function reveal(i){
     if(i>=QS.length){
-      const br = document.getElementById("btnrow");
+      const br=document.getElementById("btnrow");
       br.classList.remove("qhide"); br.classList.add("qshow");
       br.scrollIntoView({behavior:"smooth", block:"center"});
       return;
@@ -473,28 +553,35 @@ function scrVignette(k, pos){
     if(i>0) el.scrollIntoView({behavior:"smooth", block:"center"});
   }
 
-  // one listener, delegated: reveal the next question as soon as this one is answered
-  document.getElementById("qzone").addEventListener("change", (ev)=>{
-    const nm = ev.target && ev.target.name;
-    if(!nm) return;
-    const i = QS.findIndex(x=>x.id===nm);
-    if(i<0) return;
+  document.getElementById("qzone").addEventListener("change",(ev)=>{
+    const nm = ev.target && ev.target.name; if(!nm) return;
+    const i = QS.findIndex(x=>x.id===nm); if(i<0) return;
     if(!answeredAt[nm]) answeredAt[nm] = Date.now();
-    if(i===shown && answered(i)) setTimeout(()=>reveal(i+1), 260);
+    if(i===shown && answered(i)) setTimeout(()=>reveal(i+1), 250);
   });
 
-  // forced reading window before the first question appears
-  const READ_MS = 5000;
-  setTimeout(()=>{
-    const rn = document.getElementById("readnote");
-    if(rn) rn.remove();
-    reveal(0);
-  }, READ_MS);
+  /* --- gate 2: revealing the second answer, then the questions --- */
+  if(askBtn){
+    askBtn.addEventListener("click", ()=>{
+      D["v"+k+"_t_to_ask_ms"] = Date.now()-tEnter;
+      document.getElementById("vleft").innerHTML = chatHTML(V, true);
+      const w = document.getElementById("waiting");
+      if(w) w.textContent = "Take a moment to read the second answer. The first question will appear here shortly.";
+      const gap = document.querySelectorAll("#vleft .gap");
+      if(gap.length) gap[gap.length-1].scrollIntoView({behavior:"smooth", block:"center"});
+      setTimeout(()=>{
+        const w2 = document.getElementById("waiting"); if(w2) w2.remove();
+        wire();                       // option highlighting for the radio block
+        reveal(0);
+      }, READ2_MS);
+    });
+  }
 
   document.getElementById("next").onclick = ()=>{
-    if(!need(QS.map(x=>x.id))) return;      // cannot happen via the UI, but belt and braces
-    D["v"+k+"_type"] = V.type;
-    D["v"+k+"_pos"]  = pos;
+    if(!need(QS.map(x=>x.id))) return;
+    D["v"+k+"_type"]   = V.type;
+    D["v"+k+"_domain"] = V.domain;
+    D["v"+k+"_pos"]    = pos;
     QS.forEach(qq=>{
       const v = val(qq.id);
       D["v"+k+"_"+qq.id] = (qq.kind==="lik") ? +v : v;
@@ -502,6 +589,7 @@ function scrVignette(k, pos){
         D["v"+k+"_"+qq.id+"_ms"] = answeredAt[qq.id]-revealedAt[qq.id];
     });
     D["t_vig_"+k+"_ms"] = Date.now()-T.screenStart;
+    document.querySelector(".wrap").classList.remove("wide");
     idx++; runScreen();
   };
 }
